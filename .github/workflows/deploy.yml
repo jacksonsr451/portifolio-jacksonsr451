@@ -71,9 +71,9 @@ jobs:
           composer lint
           composer analyse
           composer audit --locked --no-interaction
-          php artisan test --coverage --min=80
           npm audit --audit-level=high
           npm run build
+          php artisan test --coverage --min=80
       - name: Build immutable image artifact
         env:
           RELEASE_REF: ${{ inputs.release_ref }}

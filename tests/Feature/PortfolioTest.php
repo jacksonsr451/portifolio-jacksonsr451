@@ -75,5 +75,5 @@ it('serves the framework health endpoint', function () {
 });
 
 it('serves robots rules with an absolute sitemap address', function () {
-    $this->get('/robots.txt')->assertOk()->assertSee('Sitemap: http://localhost/sitemap.xml');
+    $this->get('/robots.txt')->assertOk()->assertSee('Sitemap: '.url('/sitemap.xml'));
 });
