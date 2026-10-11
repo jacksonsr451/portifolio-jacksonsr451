@@ -30,7 +30,7 @@ EXPOSE 9000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD php artisan about --only=environment >/dev/null || exit 1
 CMD ["php-fpm", "-F"]
 
-FROM nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236 AS web
+FROM nginx:1.31-alpine@sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2 AS web
 COPY docker/nginx-main.conf /etc/nginx/nginx.conf
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=runtime /var/www/html/public /var/www/html/public
