@@ -36,15 +36,28 @@ jobs:
         run: npm audit --audit-level=high
 
   dependency-review:
+    # The GitHub dependency-review API is unavailable for this repository.
+    # Audit both complete lockfiles on PRs instead; high/critical advisories still fail.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
     steps:
-      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0, Node 24
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, Node 24
         with:
-          fail-on-severity: high
+          persist-credentials: false
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0, Node 24
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0, Node 24
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Review locked PHP dependencies for advisories
+        run: composer audit --locked --no-interaction
+      - name: Review npm dependencies for high/critical advisories
+        run: npm audit --audit-level=high
 
   secret-scan:
     runs-on: ubuntu-latest
@@ -79,3 +92,15 @@ jobs:
           languages: javascript-typescript, actions
       - uses: github/codeql-action/autobuild@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3, Node 24
       - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3, Node 24
+        with:
+          # Code scanning uploads are unavailable until enabled in repository settings.
+          # Preserve the analysis and publish its SARIF as a downloadable CI artifact.
+          upload: never
+          output: codeql-results
+      - name: Preserve CodeQL SARIF results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: codeql-sarif
+          path: codeql-results/*.sarif
+          if-no-files-found: error
