@@ -7,8 +7,9 @@ Public content integrity, owner identity/contact details, deployment secrets, an
 ## Threats and controls
 
 - Malicious slug/path input: route regex constraints, lookup against curated lists, 404 on unknown identifiers.
-- Stored script injection: article Markdown uses Laravel CommonMark; Blade escapes metadata and content fields.
+- Stored script injection: article Markdown uses Laravel CommonMark with raw HTML stripped and unsafe links disabled; Blade escapes metadata and content fields. A regression test covers event-handler HTML and `javascript:` links.
 - Credential disclosure: `.env` excluded, no credentials in content, deployment settings protected and gated.
+- Session-cookie interception: production defaults to `Secure`; the selected HTTPS host must preserve `SESSION_SECURE_COOKIE=true` and set proxy/TLS handling correctly.
 - Dependency compromise: lockfiles, Composer/npm audit, Dependabot, least workflow permissions; human review remains required.
 - DoS/spam: no contact form, comments, or user-submitted endpoints currently exist; host-level rate and resource limits remain target-specific.
 - Supply-chain workflow risk: pin Actions to reviewed full commit SHAs and inspect Dependabot changes.

@@ -1,5 +1,3 @@
-import './bootstrap';
-
 const themeButton = document.querySelector('.theme-toggle');
 const storedTheme = localStorage.getItem('portfolio-theme');
 if (storedTheme === 'light') document.documentElement.classList.add('theme-light');

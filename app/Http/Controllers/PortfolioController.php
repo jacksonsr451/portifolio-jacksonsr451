@@ -46,7 +46,10 @@ class PortfolioController extends Controller
     {
         $article = collect($this->publishedArticles())->firstWhere('slug', $slug);
         abort_if($article === null, 404);
-        $article['html'] = Str::markdown($article['body']);
+        $article['html'] = Str::markdown($article['body'], [
+            'html_input' => 'strip',
+            'allow_unsafe_links' => false,
+        ]);
 
         return view('pages.article', compact('article'));
     }

@@ -24,8 +24,8 @@ flowchart LR
   Internet --> TLS[Selected host TLS termination]
   TLS --> Nginx[Container Nginx]
   Nginx --> PHP[PHP-FPM non-root]
-  PHP --> Files[Read-only app + writable storage]
-  PHP --> DB[(Optional persistent SQLite volume)]
+  PHP --> Files[Read-only app + writable storage volume]
+  Files --> State[File sessions/cache/logs]
 ```
 
-The production host remains unselected; the diagram describes the provided container shape, not an active deployed system.
+The production host remains unselected; the diagram describes the provided container shape (PHP-FPM and Nginx run non-root). Compose currently persists file sessions/cache/logs and has no database volume because portfolio pages need no database. A database is a future explicit decision, not an active service.

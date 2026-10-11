@@ -42,7 +42,7 @@ For hot reload, run `npm run dev` in a second terminal. Useful checks: `composer
 
 ## Docker setup
 
-`docker compose up --build` builds a production-oriented PHP-FPM image and serves it with Nginx on port 8080. Set a unique `APP_KEY` and configure a persistent SQLite volume before production use. Compose is a local/demo topology; no production host or cloud is selected.
+`docker compose up --build` builds a PHP-FPM application image and a separate Nginx image, both running non-root, and serves the site on port 8080. The app filesystem is read-only apart from explicit writable volumes/tmpfs. Set a unique `APP_KEY`; file-backed sessions/cache and logs use the persistent app-storage volume. Session cookies default to `Secure` in production; if testing local HTTP stateful behavior, set `SESSION_SECURE_COOKIE=false` in the local `.env`. The portfolio currently needs no database at runtime. Compose is a local/demo topology; no production host or cloud is selected.
 
 ## CI/CD
 
@@ -70,4 +70,4 @@ MIT. See [LICENSE](LICENSE). The portfolio application is licensed; names and th
 
 ## Author
 
-Jackson Severino da Rocha. Verified public profile/contact URLs are not available in this project context yet; links will be published after confirmation.
+Jackson Severino da Rocha · [GitHub](https://github.com/jacksonsr451). The GitHub profile name and professional positioning were verified during the pre-push audit. A confirmed email address, LinkedIn URL, and approved résumé PDF are still needed before adding those contact options.

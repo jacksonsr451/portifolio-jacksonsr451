@@ -9,12 +9,13 @@ services:
       APP_DEBUG: "false"
       APP_KEY: ${APP_KEY:?Set a unique APP_KEY in the local environment}
       APP_URL: ${APP_URL:-http://localhost:8080}
-      DB_CONNECTION: sqlite
-      DB_DATABASE: /var/www/html/database/database.sqlite
+      SESSION_SECURE_COOKIE: ${SESSION_SECURE_COOKIE:-true}
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
       LOG_CHANNEL: stderr
     volumes:
       - app-storage:/var/www/html/storage
-      - app-database:/var/www/html/database
     expose:
       - "9000"
     healthcheck:
@@ -27,6 +28,10 @@ services:
     tmpfs:
       - /tmp
       - /var/www/html/bootstrap/cache:uid=82,gid=82,mode=0775
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
   web:
@@ -44,8 +49,14 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
 
 volumes:
   app-storage:
-  app-database:
