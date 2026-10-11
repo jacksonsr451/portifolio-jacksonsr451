@@ -45,6 +45,8 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
       - name: Install frontend dependencies
         run: npm ci
+      - name: Build frontend assets required by Blade tests
+        run: npm run build
       - name: Prepare Laravel test environment
         run: |
           cp .env.example .env
@@ -56,5 +58,3 @@ jobs:
         run: composer analyse
       - name: Pest
         run: php artisan test --coverage --min=80
-      - name: Build frontend
-        run: npm run build
