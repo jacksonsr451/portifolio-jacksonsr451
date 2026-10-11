@@ -52,12 +52,12 @@ Fixes #
 
 ### Automated Tests
 
+- [ ] `npm ci`
+- [ ] `npm run build` (before Blade tests; creates the Vite manifest)
 - [ ] `composer test`
+- [ ] `php artisan test --coverage --min=80`
 - [ ] `composer lint`
 - [ ] `composer analyse`
-- [ ] `php artisan test --coverage --min=80`
-- [ ] `npm ci`
-- [ ] `npm run build`
 
 ### Security Checks
 
