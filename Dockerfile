@@ -12,7 +12,7 @@ WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --prefer-dist --no-scripts --no-progress --optimize-autoloader
 
-FROM php:8.4-fpm-alpine@sha256:78cd8de9970a9cd6ff4d98860a94eb5bf37dd2d5776b4785562dbfad01c29d5a AS runtime
+FROM php:8.5-fpm-alpine@sha256:fa01fb1645cd0fc566a5f146b099adace33b906571f972f71f2182a7c12d1cd7 AS runtime
 RUN mkdir -p /var/www/html/storage/framework/cache /var/www/html/storage/framework/sessions /var/www/html/storage/framework/views /var/www/html/storage/logs /var/www/html/bootstrap/cache \
     && sed -i 's#;pid = run/php-fpm.pid#pid = /tmp/php-fpm.pid#' /usr/local/etc/php-fpm.conf \
     && sed -i 's#listen = 127.0.0.1:9000#listen = 9000#' /usr/local/etc/php-fpm.d/www.conf \
