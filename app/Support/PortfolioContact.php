@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 
 class PortfolioContact
 {
@@ -20,6 +21,20 @@ class PortfolioContact
             'linkedin' => $this->profileUrl(config('portfolio.linkedin'), 'www.linkedin.com', '/in/jackson-severino-da-rocha/'),
             'github' => $this->profileUrl(config('portfolio.github'), 'github.com', '/jacksonsr451'),
         ];
+    }
+
+    public function personStructuredData(): HtmlString
+    {
+        return new HtmlString(json_encode([
+            '@context' => 'https://schema.org',
+            '@type' => 'Person',
+            'name' => config('portfolio.name'),
+            'jobTitle' => __('ui.site.json_job_title'),
+            'inLanguage' => app()->getLocale(),
+            'url' => url()->current(),
+            'sameAs' => array_values(array_filter($this->profileLinks())),
+            'knowsAbout' => ['Python', 'FastAPI', 'Java', 'Spring Boot', 'REST APIs', 'PostgreSQL', 'Docker'],
+        ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
     }
 
     public function resumePath(): ?string

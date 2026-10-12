@@ -60,6 +60,8 @@ No contact form or user-submitted content is enabled. Keep dependencies updated,
 
 `app/Http/Controllers` public page controller · `config/portfolio.php` curated catalog · `resources/views` Blade · `resources/content/articles` Markdown · `tests` Pest · `docs` engineering and operating guidance · `.github/workflows` automation.
 
+The public site is available in Portuguese (Brazil) and English. See the [internationalization guide](docs/development/internationalization.md) for route, content, translation, and SEO conventions; all future user-facing changes must support and test both locales.
+
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md), run the checks above, and cite evidence for project or contribution claims in content PRs. Do not publish unverified history, metrics, client information, or credentials.

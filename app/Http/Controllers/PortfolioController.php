@@ -2,75 +2,104 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\LocalizedArticleRepository;
+use App\Support\LocalizedPortfolio;
 use App\Support\PortfolioContact;
+use App\Support\SupportedLocales;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PortfolioController extends Controller
 {
-    public function home(PortfolioContact $contact): View
+    public function home(string $locale): View
     {
+        $contact = app(PortfolioContact::class);
+
         return view('pages.home', [
-            'projects' => collect(config('portfolio.projects'))->where('featured', true)->take(3),
-            'contributions' => collect(config('portfolio.open_source'))->where('type', 'merged')->take(3),
+            'projects' => collect(app(LocalizedPortfolio::class)->projects($locale))->where('featured', true)->take(3),
+            'contributions' => collect(app(LocalizedPortfolio::class)->contributions($locale))->where('state', 'merged')->take(3),
             'resumeAvailable' => $contact->resumePath() !== null,
+            'title' => __('ui.seo.home_title'),
+            'description' => __('ui.seo.home_description'),
         ]);
     }
 
-    public function about(): View
+    public function about(string $locale): View
     {
-        return view('pages.about');
+        return view('pages.about', [
+            'title' => __('ui.seo.about_title'),
+            'description' => __('ui.about.intro'),
+        ]);
     }
 
-    public function projects(): View
+    public function projects(string $locale): View
     {
-        return view('pages.projects', ['projects' => config('portfolio.projects')]);
+        return view('pages.projects', [
+            'projects' => app(LocalizedPortfolio::class)->projects($locale),
+            'title' => __('ui.seo.projects_title'),
+            'description' => __('ui.projects.intro'),
+        ]);
     }
 
-    public function project(string $slug): View
+    public function project(string $locale, string $slug): View
     {
-        $project = collect(config('portfolio.projects'))->firstWhere('slug', $slug);
+        $project = app(LocalizedPortfolio::class)->project($locale, $slug);
         abort_if($project === null, 404);
 
         return view('pages.project', [
             'project' => $project,
-            'title' => $project['title'].' — Project case study',
+            'title' => $project['title'].__('ui.project.title_suffix'),
             'description' => $project['summary'],
         ]);
     }
 
-    public function openSource(): View
+    public function openSource(string $locale): View
     {
-        return view('pages.open-source', ['contributions' => config('portfolio.open_source')]);
+        return view('pages.open-source', [
+            'contributions' => app(LocalizedPortfolio::class)->contributions($locale),
+            'title' => __('ui.seo.open_source_title'),
+            'description' => __('ui.open_source.intro'),
+        ]);
     }
 
-    public function articles(): View
+    public function articles(string $locale): View
     {
-        return view('pages.articles', ['articles' => $this->publishedArticles()]);
+        return view('pages.articles', [
+            'articles' => app(LocalizedArticleRepository::class)->published($locale),
+            'title' => __('ui.seo.writing_title'),
+            'description' => __('ui.writing.intro'),
+        ]);
     }
 
-    public function article(string $slug): View
+    public function article(string $locale, string $slug): View
     {
-        $article = collect($this->publishedArticles())->firstWhere('slug', $slug);
+        $article = app(LocalizedArticleRepository::class)->find($locale, $slug);
         abort_if($article === null, 404);
         $article['html'] = Str::markdown($article['body'], [
             'html_input' => 'strip',
             'allow_unsafe_links' => false,
         ]);
 
-        return view('pages.article', compact('article'));
+        return view('pages.article', [
+            'article' => $article,
+            'title' => $article['title'].__('ui.article.title_suffix'),
+            'description' => $article['description'],
+        ]);
     }
 
-    public function contact(PortfolioContact $contact): View
+    public function contact(string $locale): View
     {
+        $contact = app(PortfolioContact::class);
+
         return view('pages.contact', [
             'email' => $contact->email(),
             'profileLinks' => $contact->profileLinks(),
             'resumeAvailable' => $contact->resumePath() !== null,
+            'title' => __('ui.seo.contact_title'),
+            'description' => __('ui.contact.intro'),
         ]);
     }
 
@@ -87,48 +116,53 @@ class PortfolioController extends Controller
 
     public function sitemap(): Response
     {
-        $urls = collect(['/', '/about', '/projects', '/open-source', '/writing', '/contact'])
-            ->concat(collect(config('portfolio.projects'))->map(fn (array $project) => '/projects/'.$project['slug']))
-            ->concat(collect($this->publishedArticles())->map(fn (array $article) => '/writing/'.$article['slug']));
+        $portfolio = app(LocalizedPortfolio::class);
+        $articles = app(LocalizedArticleRepository::class);
+        $localeRegistry = app(SupportedLocales::class);
+        $locales = $localeRegistry->codes();
+        $groups = [];
 
-        return response()->view('sitemap', ['urls' => $urls])->header('Content-Type', 'application/xml; charset=UTF-8');
+        $addGroup = static function (string $name, array $parameters, array $availableLocales) use (&$groups, $localeRegistry): void {
+            $alternates = [];
+            foreach ($availableLocales as $locale) {
+                $alternates[$locale] = route($name, ['locale' => $locale, ...$parameters]);
+            }
+            if (isset($alternates[$localeRegistry->default()])) {
+                $alternates['x-default'] = $alternates[$localeRegistry->default()];
+            }
+            foreach (array_diff_key($alternates, ['x-default' => true]) as $url) {
+                $groups[] = ['loc' => $url, 'alternates' => $alternates];
+            }
+        };
+
+        foreach (['localized.home', 'localized.about', 'localized.projects.index', 'localized.open-source', 'localized.articles.index', 'localized.contact'] as $name) {
+            $addGroup($name, [], $locales);
+        }
+
+        foreach (array_column(config('portfolio.projects'), 'slug') as $slug) {
+            $available = array_values(array_filter($locales, fn (string $locale) => $portfolio->project($locale, $slug) !== null));
+            if ($available !== []) {
+                $addGroup('localized.projects.show', ['slug' => $slug], $available);
+            }
+        }
+
+        $articleSlugs = collect($locales)
+            ->flatMap(fn (string $locale) => array_column($articles->published($locale), 'slug'))
+            ->unique()->values();
+
+        foreach ($articleSlugs as $slug) {
+            $available = array_values(array_filter($locales, fn (string $locale) => $articles->find($locale, $slug) !== null));
+            if ($available !== []) {
+                $addGroup('localized.articles.show', ['slug' => $slug], $available);
+            }
+        }
+
+        return response()->view('sitemap', ['entries' => $groups])->header('Content-Type', 'application/xml; charset=UTF-8');
     }
 
     public function robots(): Response
     {
         return response("User-agent: *\nAllow: /\nSitemap: ".url('/sitemap.xml')."\n", 200)
             ->header('Content-Type', 'text/plain; charset=UTF-8');
-    }
-
-    /** @return list<array{slug:string,title:string,description:string,date:string,body:string}> */
-    private function publishedArticles(): array
-    {
-        return collect(File::files(resource_path('content/articles')))
-            ->filter(fn ($file) => $file->getExtension() === 'md')
-            ->map(function ($file): array {
-                $content = $file->getContents();
-                preg_match('/\A---\R(.*?)\R---\R(.*)\z/s', $content, $parts);
-                $metadata = [];
-                foreach (preg_split('/\R/', $parts[1] ?? '') as $line) {
-                    if (preg_match('/^(slug|title|description|date|status):\s*(.+)$/', $line, $match)) {
-                        $metadata[$match[1]] = trim($match[2], " \t\"'");
-                    }
-                }
-                $date = $metadata['date'] ?? '';
-                $parsedDate = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
-                $validDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1
-                    && $parsedDate instanceof \DateTimeImmutable
-                    && $parsedDate->format('Y-m-d') === $date;
-
-                if (($metadata['status'] ?? '') !== 'published'
-                    || preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $metadata['slug'] ?? '') !== 1
-                    || ! $validDate) {
-                    return [];
-                }
-
-                return [...$metadata, 'body' => trim($parts[2] ?? '')];
-            })
-            ->filter(fn (array $article) => isset($article['slug'], $article['title'], $article['description'], $article['date'], $article['body']))
-            ->sortByDesc('date')->values()->all();
     }
 }
