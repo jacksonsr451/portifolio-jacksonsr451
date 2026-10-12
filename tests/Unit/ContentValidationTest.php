@@ -8,6 +8,15 @@ it('has unique valid project slugs and required case-study fields', function () 
     foreach ($projects as $project) {
         expect($project)->toHaveKeys(['slug', 'title', 'summary', 'status', 'stack', 'problem', 'context', 'role', 'architecture', 'decisions', 'tradeoffs', 'testing', 'challenges', 'evidence']);
         expect($project['slug'])->toMatch('/^[a-z0-9-]+$/');
+        expect($project['sources'])->not->toBeEmpty();
+
+        foreach ([...$project['sources'], ...array_filter([
+            isset($project['repository']) ? ['url' => $project['repository']] : null,
+            isset($project['demo']) ? ['url' => $project['demo']] : null,
+        ])] as $reference) {
+            expect(parse_url($reference['url'], PHP_URL_SCHEME))->toBe('https');
+            expect(parse_url($reference['url'], PHP_URL_HOST))->not->toBeEmpty();
+        }
     }
 });
 
