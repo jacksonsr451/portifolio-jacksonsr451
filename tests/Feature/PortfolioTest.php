@@ -10,6 +10,37 @@ it('renders each public section', function (string $path) {
     $this->get($path)->assertOk();
 })->with(['/about', '/projects', '/open-source', '/writing', '/contact']);
 
+it('shows linked and correctly classified open-source contributions on the page and homepage', function () {
+    $page = $this->get('/open-source')->assertOk();
+    $page->assertSee('Eclipse Foundation / otterdog')
+        ->assertSee('Issue #536')->assertSee('PR #765')
+        ->assertSee('Merged')->assertSee('Open issue — discussion only')
+        ->assertSee('https://github.com/eclipse-csi/otterdog/pull/779', false)
+        ->assertSee('https://github.com/microsoft/PyRIT/issues/2748', false)
+        ->assertSee('Completion PR #2989 (by another contributor)')
+        ->assertDontSee('Verification required');
+
+    $this->get('/')
+        ->assertOk()
+        ->assertSee('Contributions with evidence.')
+        ->assertSee('PR #765')
+        ->assertSee('PR #779')
+        ->assertDontSee('Candidate contribution records');
+});
+
+it('omits invalid optional contribution links and escapes contribution content', function () {
+    $contributions = config('portfolio.open_source');
+    $contributions[0]['scope'] = '<script>alert("x")</script>';
+    $contributions[0]['pull_request_url'] = 'javascript:alert(1)';
+    config(['portfolio.open_source' => $contributions]);
+
+    $this->get('/open-source')
+        ->assertOk()
+        ->assertSee('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;', false)
+        ->assertDontSee('<script>', false)
+        ->assertDontSee('href="javascript:', false);
+});
+
 it('shows a project detail with structured case-study sections', function () {
     $this->get('/projects/eventflow')->assertOk()->assertSee('Technology stack')->assertSee('Problem statement')->assertSee('Architecture')->assertSee('Testing strategy')->assertSee('ADR-001');
 });

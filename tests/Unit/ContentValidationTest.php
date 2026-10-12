@@ -47,3 +47,36 @@ it('validates article front matter and unique published identifiers', function (
 
     expect($slugs)->toHaveCount(count(array_unique($slugs)));
 });
+
+it('has complete open-source contribution records with valid evidence and honest statuses', function () {
+    $contributions = config('portfolio.open_source');
+
+    expect($contributions)->not->toBeEmpty();
+
+    foreach ($contributions as $contribution) {
+        expect($contribution)->toHaveKeys([
+            'organization', 'repository', 'issue', 'pull_request', 'scope', 'participation',
+            'status', 'type', 'issue_url', 'pull_request_url',
+        ]);
+        expect($contribution['organization'])->not->toBeEmpty();
+        expect($contribution['repository'])->not->toBeEmpty();
+        expect($contribution['scope'])->not->toBeEmpty();
+        expect($contribution['participation'])->not->toBeEmpty();
+
+        foreach (array_filter([$contribution['issue_url'], $contribution['pull_request_url'], $contribution['related_url'] ?? null]) as $url) {
+            expect(filter_var($url, FILTER_VALIDATE_URL))->not->toBeFalse();
+            expect(parse_url($url, PHP_URL_SCHEME))->toBe('https');
+            expect(parse_url($url, PHP_URL_HOST))->toBe('github.com');
+        }
+
+        if ($contribution['type'] === 'merged') {
+            expect($contribution['pull_request'])->toBeInt();
+            expect($contribution['pull_request_url'])->not->toBeNull();
+            expect($contribution['status'])->toBe('Merged');
+        } else {
+            expect($contribution['type'])->toBe('discussion');
+            expect($contribution['pull_request'])->toBeNull();
+            expect($contribution['pull_request_url'])->toBeNull();
+        }
+    }
+});
