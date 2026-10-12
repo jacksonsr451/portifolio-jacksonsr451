@@ -468,7 +468,17 @@ it('strips raw HTML and unsafe links from published Markdown', function () {
 });
 
 it('publishes canonical metadata and structured data', function () {
-    $this->get('/en')->assertOk()->assertSee('rel="canonical"', false)->assertSee('application/ld+json', false)->assertSee('og:title', false)->assertSee('hreflang="pt-BR"', false)->assertSee('hreflang="en"', false)->assertSee('hreflang="x-default"', false);
+    $response = $this->get('/en')->assertOk()
+        ->assertSee('rel="canonical"', false)
+        ->assertSee('application/ld+json', false)
+        ->assertSee('og:title', false)
+        ->assertSee('hreflang="pt-BR"', false)
+        ->assertSee('hreflang="en"', false)
+        ->assertSee('hreflang="x-default"', false);
+
+    preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $response->getContent(), $structuredData);
+    expect(json_decode(trim($structuredData[1] ?? ''), true))
+        ->toMatchArray(['@context' => 'https://schema.org', '@type' => 'Person', 'inLanguage' => 'en']);
 });
 
 it('serves a sitemap containing public routes and content', function () {

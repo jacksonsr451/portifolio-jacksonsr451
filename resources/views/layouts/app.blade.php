@@ -28,9 +28,8 @@
     <title>{{ $title ?? __('ui.seo.home_title') }}</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @php($structuredData = json_encode(['@context' => 'https://schema.org', '@type' => 'Person', 'name' => config('portfolio.name'), 'jobTitle' => __('ui.site.json_job_title'), 'inLanguage' => app()->getLocale(), 'url' => url()->current(), 'sameAs' => array_values(array_filter($profileLinks)), 'knowsAbout' => ['Python', 'FastAPI', 'Java', 'Spring Boot', 'REST APIs', 'PostgreSQL', 'Docker']], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES))
     <script type="application/ld+json">
-        <?php echo $structuredData; ?>
+        <?php echo app(\App\Support\PortfolioContact::class)->personStructuredData(); ?>
     </script>
 </head>
 
