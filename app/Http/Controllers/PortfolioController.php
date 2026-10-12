@@ -11,7 +11,10 @@ class PortfolioController extends Controller
 {
     public function home(): View
     {
-        return view('pages.home', ['projects' => collect(config('portfolio.projects'))->where('featured', true)->take(3)]);
+        return view('pages.home', [
+            'projects' => collect(config('portfolio.projects'))->where('featured', true)->take(3),
+            'contributions' => collect(config('portfolio.open_source'))->where('type', 'merged')->take(3),
+        ]);
     }
 
     public function about(): View
