@@ -66,7 +66,7 @@ class LocalizedPortfolio
     /** @return array<string, mixed> */
     private function translations(string $locale): array
     {
-        abort_unless(in_array($locale, config('i18n.supported'), true), 404);
+        abort_unless(app(SupportedLocales::class)->supports($locale), 404);
 
         return require lang_path($locale.'/portfolio.php');
     }

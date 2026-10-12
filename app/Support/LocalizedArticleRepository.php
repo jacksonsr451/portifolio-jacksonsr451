@@ -9,7 +9,7 @@ class LocalizedArticleRepository
     /** @return list<array{slug:string,title:string,description:string,date:string,status:string,body:string}> */
     public function published(string $locale): array
     {
-        if (! in_array($locale, config('i18n.supported'), true)) {
+        if (! app(SupportedLocales::class)->supports($locale)) {
             return [];
         }
 

@@ -9,7 +9,6 @@ return [
         'open_source' => 'Open source', 'writing' => 'Writing', 'contact' => 'Contact',
         'theme_toggle' => 'Toggle color theme', 'theme' => 'Theme',
         'language_switch' => 'Change language',
-        'language_pt_BR' => 'Português (Brasil)', 'language_en' => 'English',
         'profiles' => 'Professional profiles', 'skip' => 'Skip to content', 'new_tab' => '(opens in a new tab)',
     ],
     'footer' => [

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SupportedLocales;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -50,7 +51,7 @@ class LegacyRedirectController extends Controller
     /** @param array<string, string> $parameters */
     private function redirect(Request $request, string $routeName, array $parameters = []): RedirectResponse
     {
-        $url = route($routeName, ['locale' => config('i18n.default'), ...$parameters]);
+        $url = route($routeName, ['locale' => app(SupportedLocales::class)->default(), ...$parameters]);
         $query = http_build_query($request->query());
 
         return redirect()->to($query === '' ? $url : $url.'?'.$query, 301);

@@ -2,6 +2,7 @@
 
 use App\Support\LocalizedArticleRepository;
 use App\Support\LocalizedPortfolio;
+use App\Support\SupportedLocales;
 use Illuminate\Support\Facades\File;
 
 it('has unique valid project slugs and required case-study fields', function () {
@@ -23,7 +24,7 @@ it('has unique valid project slugs and required case-study fields', function () 
         }
     }
 
-    foreach (config('i18n.supported') as $locale) {
+    foreach (app(SupportedLocales::class)->codes() as $locale) {
         $localized = app(LocalizedPortfolio::class)->projects($locale);
         expect(array_column($localized, 'slug'))->toEqual($slugs);
         foreach ($localized as $project) {
@@ -40,7 +41,7 @@ it('validates published Markdown articles and matching translation identifiers',
     $repository = app(LocalizedArticleRepository::class);
     $articlesByLocale = [];
 
-    foreach (config('i18n.supported') as $locale) {
+    foreach (app(SupportedLocales::class)->codes() as $locale) {
         $articles = $repository->published($locale);
         expect($articles)->not->toBeEmpty();
         $slugs = array_column($articles, 'slug');
@@ -81,12 +82,32 @@ it('provides matching non-empty interface translation keys for each supported lo
 
     expect($flatten($portuguese))->toEqual($flatten($english));
     expect(config('i18n.default'))->toBe('pt-BR')
-        ->and(config('i18n.supported'))->toBe(['pt-BR', 'en'])
+        ->and(app(SupportedLocales::class)->codes())->toBe(['pt-BR', 'en'])
+        ->and(app(SupportedLocales::class)->supports('en-US'))->toBeFalse()
+        ->and(config('i18n.locales.en.name'))->toBe('English')
+        ->and(config('i18n.locales.en.enabled'))->toBeTrue()
         ->and(config('app.fallback_locale'))->toBe('pt-BR');
+
+    $registry = config('i18n.locales');
+    $registry['en-US'] = ['name' => 'English (United States)', 'enabled' => true, 'og_locale' => 'en_US'];
+    $registry['zh-Hant'] = ['name' => '中文 (繁體)', 'enabled' => true, 'og_locale' => 'zh_TW'];
+    $registry['invalid_locale'] = ['name' => 'Invalid', 'enabled' => true, 'og_locale' => 'invalid'];
+    $registry['malformed-record'] = 'not a locale metadata record';
+    $registry['missing-name'] = ['enabled' => true, 'og_locale' => 'xx_XX'];
+    $registry['missing-og-locale'] = ['name' => 'Missing metadata', 'enabled' => true];
+    config(['i18n.locales' => $registry]);
+
+    expect(app(SupportedLocales::class)->codes())->toBe(['pt-BR', 'en'])
+        ->and(app(SupportedLocales::class)->supports('en-US'))->toBeFalse()
+        ->and(app(SupportedLocales::class)->supports('zh-Hant'))->toBeFalse()
+        ->and(app(SupportedLocales::class)->supports('invalid_locale'))->toBeFalse()
+        ->and(app(SupportedLocales::class)->supports('malformed-record'))->toBeFalse()
+        ->and(app(SupportedLocales::class)->supports('missing-name'))->toBeFalse()
+        ->and(app(SupportedLocales::class)->supports('missing-og-locale'))->toBeFalse();
 });
 
 it('localizes all open-source participation records without changing their technical state', function () {
-    foreach (config('i18n.supported') as $locale) {
+    foreach (app(SupportedLocales::class)->codes() as $locale) {
         $items = app(LocalizedPortfolio::class)->contributions($locale);
         expect($items)->toHaveCount(count(config('portfolio.open_source')));
 

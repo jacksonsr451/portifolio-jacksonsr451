@@ -9,13 +9,14 @@ class LocalizedRoutes
     public function __construct(
         private readonly LocalizedPortfolio $portfolio,
         private readonly LocalizedArticleRepository $articles,
+        private readonly SupportedLocales $locales,
     ) {}
 
     /** @return array<string, string> */
     public function switchUrls(Request $request): array
     {
         $urls = [];
-        foreach (config('i18n.supported') as $locale) {
+        foreach ($this->locales->codes() as $locale) {
             $urls[$locale] = $this->urlForLocale($request, $locale, true);
         }
 
@@ -31,14 +32,14 @@ class LocalizedRoutes
         }
 
         $urls = [];
-        foreach (config('i18n.supported') as $locale) {
+        foreach ($this->locales->codes() as $locale) {
             if ($this->hasEquivalent($route->getName(), $route->parameters(), $locale)) {
                 $urls[$locale] = $this->urlForLocale($request, $locale, false);
             }
         }
 
-        if (isset($urls[config('i18n.default')])) {
-            $urls['x-default'] = $urls[config('i18n.default')];
+        if (isset($urls[$this->locales->default()])) {
+            $urls['x-default'] = $urls[$this->locales->default()];
         }
 
         return $urls;

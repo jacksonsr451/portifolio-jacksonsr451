@@ -1,6 +1,8 @@
 <?php
 
 use App\Support\LocalizedArticleRepository;
+use App\Support\SupportedLocales;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -9,7 +11,13 @@ it('renders the default-language homepage with professional positioning and sele
 });
 
 it('renders each public section', function (string $path) {
-    $this->get($path)->assertOk();
+    $selectorLabel = str_starts_with($path, '/pt-BR/') ? 'Alterar idioma' : 'Change language';
+
+    $this->get($path)
+        ->assertOk()
+        ->assertSee('aria-label="'.$selectorLabel.'"', false)
+        ->assertSee('Português (Brasil)')
+        ->assertSee('English');
 })->with(['/pt-BR/about', '/pt-BR/projects', '/pt-BR/open-source', '/pt-BR/writing', '/pt-BR/contact', '/en/about', '/en/projects', '/en/open-source', '/en/writing', '/en/contact']);
 
 it('localizes full page copy and open-source states in both locales', function () {
@@ -47,7 +55,7 @@ it('formats article dates in the active locale', function (string $locale, strin
 it('renders every catalog project detail and published article in each supported locale', function () {
     $articles = app(LocalizedArticleRepository::class);
 
-    foreach (config('i18n.supported') as $locale) {
+    foreach (app(SupportedLocales::class)->codes() as $locale) {
         foreach (config('portfolio.projects') as $project) {
             $this->get("/{$locale}/projects/{$project['slug']}")->assertOk();
         }
@@ -96,6 +104,58 @@ it('preserves the current route, slug, and query string in the language selector
         ->assertSee('aria-current="page"', false);
 });
 
+it('supports a separately registered BCP 47 locale through the same routes and selector', function () {
+    $langDirectory = lang_path('en-US');
+    $articleDirectory = resource_path('content/articles/en-US');
+    expect(File::exists($langDirectory))->toBeFalse();
+    expect(File::exists($articleDirectory))->toBeFalse();
+
+    File::makeDirectory($langDirectory, 0755, true);
+    File::makeDirectory($articleDirectory, 0755, true);
+    File::copy(lang_path('en/ui.php'), $langDirectory.'/ui.php');
+    File::copy(lang_path('en/portfolio.php'), $langDirectory.'/portfolio.php');
+    $portfolioFixture = require $langDirectory.'/portfolio.php';
+    unset($portfolioFixture['projects']['erp-platform']);
+    file_put_contents($langDirectory.'/portfolio.php', "<?php\n\nreturn ".var_export($portfolioFixture, true).";\n");
+
+    foreach (File::files(resource_path('content/articles/en')) as $articleFile) {
+        File::copy($articleFile->getPathname(), $articleDirectory.'/'.$articleFile->getFilename());
+    }
+
+    $locales = config('i18n.locales');
+    $locales['en-US'] = ['name' => 'English (United States)', 'enabled' => true, 'og_locale' => 'en_US'];
+    config(['i18n.locales' => $locales]);
+
+    try {
+        $this->get('/en-US/projects/eventflow?ref=selector')
+            ->assertOk()
+            ->assertSee('<html lang="en-US"', false)
+            ->assertSee('hreflang="en-US"', false)
+            ->assertSee('property="og:locale" content="en_US"', false)
+            ->assertSee('href="http://localhost/en/projects/eventflow?ref=selector"', false)
+            ->assertSee('href="http://localhost/en-US/projects/eventflow?ref=selector"', false)
+            ->assertSee('lang="en-US" hreflang="en-US"', false)
+            ->assertSee('English (United States)');
+
+        $this->get('/en-US/writing/idempotent-apis')->assertOk();
+        $this->get('/en/projects/erp-platform')
+            ->assertOk()
+            ->assertSee('href="http://localhost/en-US/projects"', false)
+            ->assertDontSee('rel="alternate" hreflang="en-US"', false);
+        $this->get('/en-US/projects/erp-platform')
+            ->assertNotFound()
+            ->assertSee('href="http://localhost/en-US/projects"', false);
+
+        $this->get('/sitemap.xml')
+            ->assertOk()
+            ->assertSee('/en-US/projects/eventflow')
+            ->assertDontSee('http://localhost/en-US/projects/erp-platform', false);
+    } finally {
+        File::deleteDirectory($langDirectory);
+        File::deleteDirectory($articleDirectory);
+    }
+});
+
 it('rejects unsupported locales and malformed localized paths', function () {
     $this->get('/en')->assertOk();
     $this->get('/fr')->assertNotFound()->assertSee('Página não encontrada')->assertSee('noindex, follow');
@@ -104,8 +164,17 @@ it('rejects unsupported locales and malformed localized paths', function () {
     $this->get('/en/writing/Bad_Slug')->assertNotFound();
 });
 
+it('rejects locales present in the registry but disabled for publication', function () {
+    $locales = config('i18n.locales');
+    $locales['es'] = ['name' => 'Español', 'enabled' => false, 'og_locale' => 'es_ES'];
+    config(['i18n.locales' => $locales]);
+
+    $this->get('/es/contact')->assertNotFound();
+    $this->get('/pt-BR/contact')->assertOk()->assertDontSee('Español');
+});
+
 it('renders localized not-found, access-denied, expired, and server-error messages', function () {
-    foreach (config('i18n.supported') as $locale) {
+    foreach (app(SupportedLocales::class)->codes() as $locale) {
         app()->setLocale($locale);
 
         foreach (['404', '403', '419', '500'] as $status) {

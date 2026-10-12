@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\SupportedLocales;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -13,7 +14,7 @@ class SetLocale
     {
         $locale = $request->route('locale');
 
-        abort_unless(is_string($locale) && in_array($locale, config('i18n.supported'), true), 404);
+        abort_unless(app(SupportedLocales::class)->supports($locale), 404);
 
         app()->setLocale($locale);
         Carbon::setLocale($locale);

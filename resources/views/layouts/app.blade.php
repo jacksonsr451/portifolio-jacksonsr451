@@ -16,10 +16,10 @@
     <meta property="og:title" content="{{ $title ?? __('ui.seo.home_title') }}">
     <meta property="og:description" content="{{ $description ?? __('ui.seo.home_description') }}">
     <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:locale" content="{{ app()->getLocale() === 'pt-BR' ? 'pt_BR' : 'en_US' }}">
+    <meta property="og:locale" content="{{ $localeOptions[app()->getLocale()]['og_locale'] ?? $localeOptions[$defaultLocale]['og_locale'] }}">
     @foreach($localeAlternates as $alternateLocale => $alternateUrl)
     @if($alternateLocale !== app()->getLocale() && $alternateLocale !== 'x-default')
-    <meta property="og:locale:alternate" content="{{ $alternateLocale === 'pt-BR' ? 'pt_BR' : 'en_US' }}">
+    <meta property="og:locale:alternate" content="{{ $localeOptions[$alternateLocale]['og_locale'] }}">
     @endif
     @endforeach
     <meta name="twitter:card" content="summary">
@@ -46,8 +46,8 @@
             <a href="{{ route('localized.contact', ['locale' => app()->getLocale()]) }}">{{ __('ui.navigation.contact') }}</a>
         </nav>
         <div class="language-selector flex shrink-0 items-center gap-2" role="group" aria-label="{{ __('ui.navigation.language_switch') }}">
-            @foreach(config('i18n.supported') as $supportedLocale)
-            <a href="{{ $localeSwitchUrls[$supportedLocale] }}" lang="{{ $supportedLocale }}" hreflang="{{ $supportedLocale }}" @if($supportedLocale===app()->getLocale()) aria-current="page" class="font-semibold text-[var(--accent)] underline underline-offset-4" @else class="text-[var(--muted)]" @endif>{{ __('ui.navigation.language_'.str_replace('-', '_', $supportedLocale)) }}</a>
+            @foreach($localeOptions as $supportedLocale => $localeDetails)
+            <a href="{{ $localeSwitchUrls[$supportedLocale] }}" lang="{{ $supportedLocale }}" hreflang="{{ $supportedLocale }}" @if($supportedLocale===app()->getLocale()) aria-current="page" class="font-semibold text-[var(--accent)] underline underline-offset-4" @else class="text-[var(--muted)]" @endif>{{ $localeDetails['name'] }}</a>
             @endforeach
         </div>
         <button class="theme-toggle" type="button" aria-label="{{ __('ui.navigation.theme_toggle') }}">◐ <span>{{ __('ui.navigation.theme') }}</span></button>

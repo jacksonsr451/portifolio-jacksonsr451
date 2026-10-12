@@ -2,7 +2,7 @@
 
 ## Supported locales and fallback policy
 
-- Supported route locales are `pt-BR` and `en`, defined in `config/i18n.php`.
+- Locale codes, native display names, enabled flags, and Open Graph locale values are maintained together in `config/i18n.php`. `SupportedLocales` derives the active list from valid BCP 47 records marked `enabled: true` that also have UI, portfolio, and article locale resources; disabled or incomplete registry entries are neither routed nor shown in the selector. The active route locales are currently `pt-BR` and `en`.
 - The canonical default locale is `pt-BR`. `/` and legacy URLs without a locale receive a permanent redirect to the corresponding `/pt-BR/...` URL; the application does not redirect based on IP or `Accept-Language`.
 - `InitializeLocale` resets every request to the default before routing. `SetLocale` accepts only the route allowlist and applies the URL locale for that request. Locale state is not stored in session or shared between requests.
 - Laravel interface-key fallback is `pt-BR`. Both interface catalogs are required to have the same complete key structure; tests fail when a translation is absent.
@@ -17,6 +17,7 @@ Route segments stay stable in English (`projects`, `writing`, `open-source`, `co
 - `lang/{locale}/ui.php` contains interface text, page headings, accessibility labels, SEO descriptions, dates, errors, and source labels.
 - `lang/{locale}/portfolio.php` contains localized editorial fields for each stable project slug and open-source record key. `config/portfolio.php` keeps neutral identifiers, URLs, technologies, repository evidence, and technical state values (`merged`, `discussion_open`, and related states).
 - Markdown uses `resources/content/articles/{locale}/{slug}.md`. A matching slug identifies translations; front matter provides locale-specific title/description/date and `status: published|draft`. Only published, valid articles are returned. Markdown is rendered with raw HTML stripped and unsafe links disabled.
+- Future project/article persistence in issues #31/#32 should keep the project/article identity neutral and store each translation as a related record with a BCP 47 `locale` value and independent publication state. Do not add language-specific columns or tables. This issue introduces no database schema or admin interface.
 
 ### Adding or updating a translation
 
@@ -26,7 +27,7 @@ Route segments stay stable in English (`projects`, `writing`, `open-source`, `co
 4. Keep Markdown HTML disabled and preserve the escaping of Blade output. Do not add `env()` calls to views or translated content to JavaScript.
 5. Test both locale URLs, the language switch, metadata/hreflang and sitemap entries, as well as missing-translation behavior.
 
-To add a language, add it to the supported allowlist (the route constraint is generated from this list), create complete UI and portfolio catalogs and localized article content, add a tested locale label, and define its SEO/date formatting policy. Do not enable the locale until the completeness tests pass. Rebuild Laravel's configuration cache after changing supported-locale configuration:
+To add a language, add its BCP 47 code, native display name, Open Graph locale, and disabled-by-default status to the central registry. The locale-prefixed routes are data-agnostic; middleware validates every locale against the enabled registry. Create complete UI and portfolio catalogs and localized article content, then enable the locale only after completeness tests pass. A test-only `en-US` fixture verifies that `en` and `en-US` remain distinct and that the same routes, selector, SEO, and sitemap support an additional registry entry. Rebuild Laravel's configuration cache after changing the registry:
 
 ```sh
 php artisan config:clear

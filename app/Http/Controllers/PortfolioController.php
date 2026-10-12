@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Support\LocalizedArticleRepository;
 use App\Support\LocalizedPortfolio;
 use App\Support\PortfolioContact;
+use App\Support\SupportedLocales;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
@@ -117,16 +118,17 @@ class PortfolioController extends Controller
     {
         $portfolio = app(LocalizedPortfolio::class);
         $articles = app(LocalizedArticleRepository::class);
-        $locales = config('i18n.supported');
+        $localeRegistry = app(SupportedLocales::class);
+        $locales = $localeRegistry->codes();
         $groups = [];
 
-        $addGroup = static function (string $name, array $parameters, array $availableLocales) use (&$groups): void {
+        $addGroup = static function (string $name, array $parameters, array $availableLocales) use (&$groups, $localeRegistry): void {
             $alternates = [];
             foreach ($availableLocales as $locale) {
                 $alternates[$locale] = route($name, ['locale' => $locale, ...$parameters]);
             }
-            if (isset($alternates[config('i18n.default')])) {
-                $alternates['x-default'] = $alternates[config('i18n.default')];
+            if (isset($alternates[$localeRegistry->default()])) {
+                $alternates['x-default'] = $alternates[$localeRegistry->default()];
             }
             foreach (array_diff_key($alternates, ['x-default' => true]) as $url) {
                 $groups[] = ['loc' => $url, 'alternates' => $alternates];

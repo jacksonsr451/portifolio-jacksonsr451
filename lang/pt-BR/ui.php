@@ -9,7 +9,6 @@ return [
         'open_source' => 'Código aberto', 'writing' => 'Artigos', 'contact' => 'Contato',
         'theme_toggle' => 'Alternar tema de cores', 'theme' => 'Tema',
         'language_switch' => 'Alterar idioma',
-        'language_pt_BR' => 'Português (Brasil)', 'language_en' => 'Inglês',
         'profiles' => 'Perfis profissionais', 'skip' => 'Ir para o conteúdo', 'new_tab' => '(abre em uma nova aba)',
     ],
     'footer' => [
