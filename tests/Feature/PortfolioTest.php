@@ -25,6 +25,40 @@ it('lists published articles and renders markdown content safely', function () {
     $this->get('/writing/missing-article')->assertNotFound();
 });
 
+it('excludes articles with invalid front matter from listings and detail routes', function () {
+    $fixtures = [
+        'draft-status' => "slug: coverage-draft\ntitle: Coverage draft\ndescription: Not published.\ndate: 2026-10-11\nstatus: draft",
+        'invalid-slug' => "slug: Coverage_Invalid\ntitle: Coverage invalid slug\ndescription: Invalid identifier.\ndate: 2026-10-11\nstatus: published",
+        'invalid-date' => "slug: coverage-invalid-date\ntitle: Coverage invalid date\ndescription: Invalid calendar date.\ndate: 2026-02-30\nstatus: published",
+        'missing-metadata' => "slug: coverage-missing-description\ntitle: Coverage missing description\ndate: 2026-10-11\nstatus: published",
+    ];
+    $paths = [];
+
+    foreach ($fixtures as $name => $frontMatter) {
+        $path = resource_path("content/articles/coverage-{$name}.md");
+        $paths[] = $path;
+        file_put_contents($path, "---\n{$frontMatter}\n---\nThis content must not be published.\n");
+    }
+
+    try {
+        $listing = $this->get('/writing')->assertOk();
+
+        foreach (['Coverage draft', 'Coverage invalid slug', 'Coverage invalid date', 'Coverage missing description'] as $title) {
+            $listing->assertDontSee($title);
+        }
+
+        foreach (['coverage-draft', 'Coverage_Invalid', 'coverage-invalid-date', 'coverage-missing-description'] as $slug) {
+            $this->get("/writing/{$slug}")->assertNotFound();
+        }
+    } finally {
+        foreach ($paths as $path) {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
+    }
+});
+
 it('strips raw HTML and unsafe links from published Markdown', function () {
     $slug = 'markdown-security-'.Str::uuid();
     $path = resource_path("content/articles/{$slug}.md");
