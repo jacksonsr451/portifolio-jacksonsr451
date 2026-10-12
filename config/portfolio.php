@@ -5,7 +5,10 @@ return [
     'headline' => 'Backend Engineer',
     'description' => 'Backend engineer focused on dependable APIs, thoughtful architecture, and maintainable software.',
     'email' => env('PORTFOLIO_CONTACT_EMAIL'),
+    'linkedin' => env('PORTFOLIO_LINKEDIN_URL', 'https://www.linkedin.com/in/jackson-severino-da-rocha/'),
+    'github' => env('PORTFOLIO_GITHUB_URL', 'https://github.com/jacksonsr451'),
     'resume' => env('PORTFOLIO_RESUME_PATH'),
+    'resume_approved' => env('PORTFOLIO_RESUME_APPROVED', false),
     'projects' => [
         [
             'slug' => 'eventflow',

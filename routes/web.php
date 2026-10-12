@@ -11,5 +11,6 @@ Route::get('/open-source', [PortfolioController::class, 'openSource'])->name('op
 Route::get('/writing', [PortfolioController::class, 'articles'])->name('articles.index');
 Route::get('/writing/{slug}', [PortfolioController::class, 'article'])->where('slug', '[a-z0-9-]+')->name('articles.show');
 Route::get('/contact', [PortfolioController::class, 'contact'])->name('contact');
+Route::get('/resume', [PortfolioController::class, 'downloadResume'])->name('resume.download');
 Route::get('/sitemap.xml', [PortfolioController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [PortfolioController::class, 'robots'])->name('robots');
