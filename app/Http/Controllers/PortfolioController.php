@@ -29,7 +29,11 @@ class PortfolioController extends Controller
         $project = collect(config('portfolio.projects'))->firstWhere('slug', $slug);
         abort_if($project === null, 404);
 
-        return view('pages.project', compact('project'));
+        return view('pages.project', [
+            'project' => $project,
+            'title' => $project['title'].' — Project case study',
+            'description' => $project['summary'],
+        ]);
     }
 
     public function openSource(): View

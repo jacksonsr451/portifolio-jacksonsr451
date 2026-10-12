@@ -11,7 +11,7 @@ it('renders each public section', function (string $path) {
 })->with(['/about', '/projects', '/open-source', '/writing', '/contact']);
 
 it('shows a project detail with structured case-study sections', function () {
-    $this->get('/projects/eventflow')->assertOk()->assertSee('Technology stack')->assertSee('Awaiting repository verification.')->assertSee('Problem statement')->assertSee('Architecture')->assertSee('Testing strategy');
+    $this->get('/projects/eventflow')->assertOk()->assertSee('Technology stack')->assertSee('Problem statement')->assertSee('Architecture')->assertSee('Testing strategy')->assertSee('ADR-001');
 });
 
 it('returns not found for unknown or malformed project slugs', function () {
