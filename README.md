@@ -36,7 +36,7 @@ npm run build
 php artisan serve
 ```
 
-Set `APP_URL` to the local origin. SQLite is configured by default; the database file is `database/database.sqlite`. You can also run `composer run setup` for key creation, migrations, npm installation, and the frontend build after dependencies are installed. `composer run dev` starts the local PHP server and Vite. `PORTFOLIO_CONTACT_EMAIL` and `PORTFOLIO_RESUME_PATH` are optional and intentionally empty until approved contact details and an approved PDF are supplied. Never put secrets in content or commit `.env`.
+Set `APP_URL` to the local origin. SQLite is configured by default; the database file is `database/database.sqlite`. You can also run `composer run setup` for key creation, migrations, npm installation, and the frontend build after dependencies are installed. `composer run dev` starts the local PHP server and Vite. `PORTFOLIO_CONTACT_EMAIL` and résumé settings are optional; email remains empty until an approved address is supplied, and the résumé is disabled until an approved PDF and explicit approval flag are configured. See [professional contact and résumé setup](docs/development/contact-and-resume.md). Never put secrets in content or commit `.env`.
 
 For hot reload, run `npm run dev` in a second terminal. Useful checks: `composer test`, `composer lint`, `composer analyse`, `php artisan test --coverage --min=80` (with a coverage driver), `npm run build`. See the [validation report](docs/testing/validation-report.md) for the checks executed in this workspace.
 
@@ -70,4 +70,4 @@ MIT. See [LICENSE](LICENSE). The portfolio application is licensed; names and th
 
 ## Author
 
-Jackson Severino da Rocha · [GitHub](https://github.com/jacksonsr451). The GitHub profile name and professional positioning were verified during the pre-push audit. A confirmed email address, LinkedIn URL, and approved résumé PDF are still needed before adding those contact options.
+Jackson Severino da Rocha · [GitHub](https://github.com/jacksonsr451) · [LinkedIn](https://www.linkedin.com/in/jackson-severino-da-rocha/). The GitHub profile was verified. The owner supplied the LinkedIn URL for this portfolio, but LinkedIn blocked automated access during review (HTTP 999). No professional email or approved résumé PDF was supplied; both remain unpublished until approved and configured.

@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PortfolioContact;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PortfolioController extends Controller
 {
-    public function home(): View
+    public function home(PortfolioContact $contact): View
     {
         return view('pages.home', [
             'projects' => collect(config('portfolio.projects'))->where('featured', true)->take(3),
             'contributions' => collect(config('portfolio.open_source'))->where('type', 'merged')->take(3),
+            'resumeAvailable' => $contact->resumePath() !== null,
         ]);
     }
 
@@ -61,9 +65,24 @@ class PortfolioController extends Controller
         return view('pages.article', compact('article'));
     }
 
-    public function contact(): View
+    public function contact(PortfolioContact $contact): View
     {
-        return view('pages.contact');
+        return view('pages.contact', [
+            'email' => $contact->email(),
+            'profileLinks' => $contact->profileLinks(),
+            'resumeAvailable' => $contact->resumePath() !== null,
+        ]);
+    }
+
+    public function downloadResume(PortfolioContact $contact): BinaryFileResponse
+    {
+        $resumePath = $contact->resumePath();
+        abort_if($resumePath === null, 404);
+
+        return response()->download(Storage::disk('local')->path($resumePath), basename($resumePath), [
+            'Content-Type' => 'application/pdf',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function sitemap(): Response
