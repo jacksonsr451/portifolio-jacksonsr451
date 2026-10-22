@@ -1,3 +1,7 @@
 # Backup and recovery
 
-Current published content and source are version-controlled. Production persistence is not selected. If SQLite is selected, use consistent online backup/copy procedures supported by the host, encrypt backups, restrict access, define retention and recovery objectives, and test restore integrity. If another database is selected, use its managed backup and point-in-time recovery features. Store backups separately from application artifacts and document restore verification. No backup schedule is active yet.
+Published source and content are version-controlled, but production data is not. The VPS topology uses two stable named volumes: `portfolio_app-database` for SQLite and `portfolio_app-storage` for sessions, cache, logs, and private uploads. A release must never replace or copy these volumes.
+
+Before each migration, the SSH adapter uses SQLite `VACUUM INTO` through the application container and writes `/var/www/html/storage/backups/database-<commit-sha>.sqlite`. This is a deployment safety copy, not a backup schedule. Configure encrypted, off-host backups of the database and storage volumes with retention, access control, recovery-point and recovery-time objectives. Test restore integrity before enabling production.
+
+For recovery, stop the application, restore a verified backup into the persistent volumes, run the appropriate migrations or forward fix, deploy the compatible immutable release, and verify the public smoke routes. Record the incident, backup identifier, release SHA, operator, and verification results. Never restore a database backup over a live writable application.

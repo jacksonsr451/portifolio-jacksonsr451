@@ -42,10 +42,12 @@ jobs:
           ADAPTER: ${{ vars.DEPLOY_ADAPTER }}
           ENABLED: ${{ vars.DEPLOYMENT_ENABLED }}
           DEPLOY_CREDENTIAL: ${{ secrets.DEPLOY_CREDENTIAL }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
           if [ "$ENABLED" != "true" ]; then echo "Deployment disabled: configure protected production variable DEPLOYMENT_ENABLED=true only after selecting and reviewing a target."; exit 1; fi
           if [ -z "$TARGET" ] || [ -z "$ADAPTER" ]; then echo "Deployment configuration missing: set DEPLOY_TARGET and DEPLOY_ADAPTER in the protected production environment."; exit 1; fi
           if [ -z "$DEPLOY_CREDENTIAL" ]; then echo "Deployment credential missing: configure a narrowly scoped DEPLOY_CREDENTIAL secret in the protected production environment."; exit 1; fi
+          if [ -z "$DEPLOY_KNOWN_HOSTS" ]; then echo "SSH host key missing: configure DEPLOY_KNOWN_HOSTS in the protected production environment."; exit 1; fi
           if ! echo "$ADAPTER" | grep -Eq '^[a-zA-Z0-9_-]+\.sh$'; then echo "Invalid DEPLOY_ADAPTER. Use a reviewed shell script filename."; exit 1; fi
           if [ ! -x "scripts/deploy/$ADAPTER" ]; then echo "Deployment adapter scripts/deploy/$ADAPTER is absent. Add and review a target-specific adapter before enabling deployment."; exit 1; fi
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0, Node 24
@@ -74,6 +76,8 @@ jobs:
           npm audit --audit-level=high
           npm run build
           php artisan test --coverage --min=80
+      - name: Verify adapter failure guards
+        run: bash scripts/deploy/test-vps-ssh.sh
       - name: Build immutable image artifact
         env:
           RELEASE_REF: ${{ inputs.release_ref }}
@@ -85,6 +89,7 @@ jobs:
         env:
           ADAPTER: ${{ vars.DEPLOY_ADAPTER }}
           DEPLOY_CREDENTIAL: ${{ secrets.DEPLOY_CREDENTIAL }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           RELEASE_REF: ${{ inputs.release_ref }}
           TARGET: ${{ vars.DEPLOY_TARGET }}
         run: |
