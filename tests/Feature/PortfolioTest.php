@@ -125,6 +125,7 @@ it('supports a separately registered BCP 47 locale through the same routes and s
     $locales = config('i18n.locales');
     $locales['en-US'] = ['name' => 'English (United States)', 'enabled' => true, 'og_locale' => 'en_US'];
     config(['i18n.locales' => $locales]);
+    $this->artisan('portfolio:import-projects')->assertExitCode(0);
 
     try {
         $this->get('/en-US/projects/eventflow?ref=selector')

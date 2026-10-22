@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'admin_emails' => array_values(array_filter(array_map('trim', explode(',', (string) env('PORTFOLIO_ADMIN_EMAILS', ''))))),
     'name' => 'Jackson Severino da Rocha',
     'email' => env('PORTFOLIO_CONTACT_EMAIL'),
     'linkedin' => env('PORTFOLIO_LINKEDIN_URL', 'https://www.linkedin.com/in/jackson-severino-da-rocha/'),

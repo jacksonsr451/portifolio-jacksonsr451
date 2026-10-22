@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\AdminAuthController;
+use App\Http\Controllers\AdminProjectController;
 use App\Http\Controllers\LegacyRedirectController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Middleware\SetLocale;
+use App\Models\Project;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LegacyRedirectController::class, 'home'])->name('legacy.home');
@@ -19,6 +22,21 @@ Route::get('/contact', [LegacyRedirectController::class, 'contact'])->name('lega
 Route::get('/resume', [PortfolioController::class, 'downloadResume'])->name('resume.download');
 Route::get('/sitemap.xml', [PortfolioController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [PortfolioController::class, 'robots'])->name('robots');
+
+Route::middleware('guest')->group(function (): void {
+    Route::get('/admin/login', [AdminAuthController::class, 'create'])->name('admin.login');
+    Route::post('/admin/login', [AdminAuthController::class, 'store'])->middleware('throttle:admin-login')->name('admin.login.store');
+});
+Route::post('/admin/logout', [AdminAuthController::class, 'destroy'])->middleware('auth')->name('admin.logout');
+Route::prefix('admin')->middleware(['auth', 'can:viewAny,'.Project::class])->name('admin.')->group(function (): void {
+    Route::get('/projects', [AdminProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects/create', [AdminProjectController::class, 'create'])->name('projects.create');
+    Route::post('/projects', [AdminProjectController::class, 'store'])->name('projects.store');
+    Route::get('/projects/{project}/edit', [AdminProjectController::class, 'edit'])->name('projects.edit');
+    Route::put('/projects/{project}', [AdminProjectController::class, 'update'])->name('projects.update');
+    Route::post('/projects/{project}/archive', [AdminProjectController::class, 'archive'])->name('projects.archive');
+    Route::get('/projects/{project}/preview/{locale}', [AdminProjectController::class, 'preview'])->name('projects.preview');
+});
 
 Route::prefix('{locale}')
     ->middleware(SetLocale::class)

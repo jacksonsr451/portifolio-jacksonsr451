@@ -2,17 +2,49 @@
 
 Server-rendered portfolio for Jackson Severino da Rocha, positioned around backend engineering with Python, FastAPI, Java, Spring Boot, REST APIs, PostgreSQL, and Docker.
 
+## Dynamic projects
+
+Projects are stored in `projects` and `project_translations`. Public routes query only
+non-archived translations with `editorial_status=published`; missing and draft
+translations are never used as a locale fallback. Import the verified catalog with:
+
+```sh
+php artisan portfolio:import-projects
+php artisan portfolio:import-projects --dry-run
+```
+
+The importer creates missing records and translations only, preserving later editorial
+changes. Review its inconsistency count before publishing.
+
+### Administration
+
+Set `PORTFOLIO_ADMIN_EMAILS` to the owner-approved address list, migrate, and provision
+the initial account interactively. No password is stored in the repository:
+
+```sh
+php artisan migrate --force
+php artisan portfolio:admin owner@example.com
+```
+
+The panel is available at `/admin/login`. There is no public registration. Login is
+session-based, rate-limited, CSRF-protected, regenerated after authentication, and
+restricted by `ProjectPolicy`. Mutations are recorded in `admin_audits`.
+
+Back up the database and `storage/app/private` before releases. To roll back, verify
+the backup and run `php artisan migrate:rollback --step=1`; this removes the project
+tables and is intentionally destructive.
+
 > **Screenshot pending:** add an approved screenshot after visual review at common mobile and desktop widths.
 
 ## Architecture
 
-Laravel 13 serves Blade views from named routes. Small, curated project metadata lives in `config/portfolio.php`; technical articles are Markdown files with validated front matter in `resources/content/articles/`. No database is required to render public content. The sitemap, robots rules, and Laravel `/up` health endpoint are served by the application.
+Laravel 13 serves Blade views from named routes. Dynamic projects use Eloquent; technical articles remain Markdown files with validated front matter in `resources/content/articles/`. The sitemap, robots rules, and Laravel `/up` health endpoint are served by the application.
 
 ```mermaid
 flowchart LR
   Browser --> Laravel[Laravel routes and controller]
   Laravel --> Blade[Blade pages]
-  Laravel --> Catalog[config/portfolio.php]
+  Laravel --> Database[(SQLite/PostgreSQL projects)]
   Laravel --> Markdown[resources/content/articles]
   Blade --> Vite[Vite-built CSS and JavaScript]
 ```

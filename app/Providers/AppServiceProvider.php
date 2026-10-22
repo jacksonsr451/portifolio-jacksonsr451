@@ -2,9 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Project;
+use App\Policies\ProjectPolicy;
 use App\Support\LocalizedRoutes;
 use App\Support\PortfolioContact;
 use App\Support\SupportedLocales;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::policy(Project::class, ProjectPolicy::class);
+        RateLimiter::for('admin-login', fn ($request) => Limit::perMinute(5)->by(strtolower((string) $request->input('email')).'|'.$request->ip()));
         View::composer('layouts.app', function ($view): void {
             $locales = app(SupportedLocales::class);
             $view->with('profileLinks', app(PortfolioContact::class)->profileLinks());

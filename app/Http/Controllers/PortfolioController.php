@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Project;
 use App\Support\LocalizedArticleRepository;
 use App\Support\LocalizedPortfolio;
 use App\Support\PortfolioContact;
@@ -139,7 +140,7 @@ class PortfolioController extends Controller
             $addGroup($name, [], $locales);
         }
 
-        foreach (array_column(config('portfolio.projects'), 'slug') as $slug) {
+        foreach (Project::query()->pluck('slug') as $slug) {
             $available = array_values(array_filter($locales, fn (string $locale) => $portfolio->project($locale, $slug) !== null));
             if ($available !== []) {
                 $addGroup('localized.projects.show', ['slug' => $slug], $available);
