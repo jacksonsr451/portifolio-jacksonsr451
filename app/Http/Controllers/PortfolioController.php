@@ -7,6 +7,7 @@ use App\Support\LocalizedArticleRepository;
 use App\Support\LocalizedPortfolio;
 use App\Support\MarkdownRenderer;
 use App\Support\PortfolioContact;
+use App\Support\SeoMetadata;
 use App\Support\SupportedLocales;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Response;
@@ -85,7 +86,8 @@ class PortfolioController extends Controller
             'article' => $article,
             'title' => $article['title'].__('ui.article.title_suffix'),
             'description' => $article['seo_description'] ?: $article['description'],
-            'structuredData' => ['@context' => 'https://schema.org', '@type' => 'Article', 'headline' => $article['title'], 'description' => $article['description'], 'datePublished' => $article['date'], 'inLanguage' => $locale, 'mainEntityOfPage' => url()->current()],
+            'ogType' => 'article',
+            'structuredData' => ['@context' => 'https://schema.org', '@type' => 'Article', 'headline' => $article['title'], 'description' => $article['description'], 'datePublished' => $article['date'], 'inLanguage' => $locale, 'author' => ['@type' => 'Person', 'name' => config('portfolio.name'), 'url' => route('localized.home', ['locale' => $locale])], 'mainEntityOfPage' => app(SeoMetadata::class)->canonicalUrl()],
         ]);
     }
 
@@ -161,7 +163,11 @@ class PortfolioController extends Controller
 
     public function robots(): Response
     {
-        return response("User-agent: *\nAllow: /\nSitemap: ".url('/sitemap.xml')."\n", 200)
+        $rules = app(SeoMetadata::class)->isIndexable()
+            ? "User-agent: *\nAllow: /\nSitemap: ".url('/sitemap.xml')."\n"
+            : "User-agent: *\nDisallow: /\n";
+
+        return response($rules, 200)
             ->header('Content-Type', 'text/plain; charset=UTF-8');
     }
 }

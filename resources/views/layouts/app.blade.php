@@ -4,33 +4,41 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    @php
+        $seo = app(\App\Support\SeoMetadata::class);
+        $indexable = $indexable ?? $seo->isIndexable();
+        $structuredData = $structuredData ?? app(\App\Support\PortfolioContact::class)->personStructuredData();
+    @endphp
     <meta name="description" content="{{ $description ?? __('ui.seo.home_description') }}">
     <meta name="theme-color" content="#101413">
-    @hasSection('robots')
-    <meta name="robots" content="@yield('robots')">@endif
-    <link rel="canonical" href="{{ url()->current() }}">
-    @foreach($localeAlternates as $language => $alternateUrl)
-    <link rel="alternate" hreflang="{{ $language }}" href="{{ $alternateUrl }}">
-    @endforeach
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="{{ $title ?? __('ui.seo.home_title') }}">
-    <meta property="og:description" content="{{ $description ?? __('ui.seo.home_description') }}">
-    <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:locale" content="{{ $localeOptions[app()->getLocale()]['og_locale'] ?? $localeOptions[$defaultLocale]['og_locale'] }}">
-    @foreach($localeAlternates as $alternateLocale => $alternateUrl)
-    @if($alternateLocale !== app()->getLocale() && $alternateLocale !== 'x-default')
-    <meta property="og:locale:alternate" content="{{ $localeOptions[$alternateLocale]['og_locale'] }}">
+    @if ($indexable)
+        <meta name="robots" content="@hasSection('robots')@yield('robots')@else index, follow @endif">
+        <link rel="canonical" href="{{ $seo->canonicalUrl() }}">
+        @foreach($localeAlternates as $language => $alternateUrl)
+        <link rel="alternate" hreflang="{{ $language }}" href="{{ $alternateUrl }}">
+        @endforeach
+        <meta property="og:type" content="{{ $ogType ?? 'website' }}">
+        <meta property="og:title" content="{{ $title ?? __('ui.seo.home_title') }}">
+        <meta property="og:description" content="{{ $description ?? __('ui.seo.home_description') }}">
+        <meta property="og:url" content="{{ $seo->canonicalUrl() }}">
+        <meta property="og:locale" content="{{ $localeOptions[app()->getLocale()]['og_locale'] ?? $localeOptions[$defaultLocale]['og_locale'] }}">
+        @foreach($localeAlternates as $alternateLocale => $alternateUrl)
+        @if($alternateLocale !== app()->getLocale() && $alternateLocale !== 'x-default')
+        <meta property="og:locale:alternate" content="{{ $localeOptions[$alternateLocale]['og_locale'] }}">
+        @endif
+        @endforeach
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:title" content="{{ $title ?? __('ui.seo.home_title') }}">
+        <meta name="twitter:description" content="{{ $description ?? __('ui.seo.home_description') }}">
+    @else
+        <meta name="robots" content="{{ $seo->robots() }}">
     @endif
-    @endforeach
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="{{ $title ?? __('ui.seo.home_title') }}">
-    <meta name="twitter:description" content="{{ $description ?? __('ui.seo.home_description') }}">
     <title>{{ $title ?? __('ui.seo.home_title') }}</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script type="application/ld+json">
-        @if(isset($structuredData))<?php echo json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>@else<?php echo app(\App\Support\PortfolioContact::class)->personStructuredData(); ?>@endif
-    </script>
+    @if ($indexable)
+        <script type="application/ld+json">{!! $seo->json($structuredData) !!}</script>
+    @endif
 </head>
 
 <body>
