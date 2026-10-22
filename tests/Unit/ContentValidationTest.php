@@ -3,7 +3,7 @@
 use App\Support\LocalizedArticleRepository;
 use App\Support\LocalizedPortfolio;
 use App\Support\SupportedLocales;
-use Illuminate\Support\Facades\File;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 it('has unique valid project slugs and required case-study fields', function () {
     $projects = config('portfolio.projects');
@@ -151,15 +151,14 @@ it('omits portfolio items when their locale-specific editorial translation is mi
 
 it('handles unsupported article locales and invalid or missing article identifiers safely', function () {
     $repository = app(LocalizedArticleRepository::class);
-    expect($repository->published('../en'))->toBe([]);
+    expect(fn () => $repository->published('../en'))->toThrow(NotFoundHttpException::class);
     expect($repository->find('en', '../private'))->toBeNull();
     expect($repository->find('en', 'article-that-does-not-exist'))->toBeNull();
 });
 
-it('returns no published articles when a supported locale directory is absent', function () {
+it('returns only persisted published articles for a supported locale', function () {
     $repository = app(LocalizedArticleRepository::class);
-    File::shouldReceive('isDirectory')->once()->andReturnFalse();
-    expect($repository->published('en'))->toBe([]);
+    expect($repository->published('en'))->not->toBeEmpty();
 });
 
 it('ignores malformed Markdown without publishing it', function () {

@@ -13,5 +13,6 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
         $this->artisan('portfolio:import-projects')->assertExitCode(0);
+        $this->artisan('portfolio:import-articles')->assertExitCode(0);
     }
 }

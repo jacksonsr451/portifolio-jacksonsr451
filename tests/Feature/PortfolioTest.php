@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Article;
 use App\Support\LocalizedArticleRepository;
 use App\Support\SupportedLocales;
 use Illuminate\Support\Facades\File;
@@ -126,6 +127,9 @@ it('supports a separately registered BCP 47 locale through the same routes and s
     $locales['en-US'] = ['name' => 'English (United States)', 'enabled' => true, 'og_locale' => 'en_US'];
     config(['i18n.locales' => $locales]);
     $this->artisan('portfolio:import-projects')->assertExitCode(0);
+    $article = Article::query()->where('slug', 'idempotent-apis')->firstOrFail();
+    $source = $article->translations()->where('locale', 'en')->firstOrFail();
+    $article->translations()->create([...$source->only(['title', 'description', 'body_markdown', 'seo_title', 'seo_description', 'cover_alt', 'published_on']), 'locale' => 'en-US', 'editorial_status' => 'published', 'published_at' => now()]);
 
     try {
         $this->get('/en-US/projects/eventflow?ref=selector')
@@ -188,23 +192,18 @@ it('renders localized not-found, access-denied, expired, and server-error messag
 });
 
 it('uses the writing index as the safe language-switch fallback for an untranslated article', function () {
-    $path = resource_path('content/articles/en/english-only-review.md');
-    file_put_contents($path, "---\nslug: english-only-review\ntitle: English-only review\ndescription: A temporary translation availability fixture.\ndate: 2026-10-12\nstatus: published\n---\nPublished only in English.\n");
+    $article = Article::query()->create(['slug' => 'english-only-review']);
+    $article->translations()->create(['locale' => 'en', 'title' => 'English-only review', 'description' => 'A temporary translation availability fixture.', 'body_markdown' => 'Published only in English.', 'seo_title' => 'English-only review', 'seo_description' => 'A temporary translation availability fixture.', 'published_on' => '2026-10-12', 'editorial_status' => 'published', 'published_at' => now()]);
 
-    try {
-        $this->get('/en/writing/english-only-review')
-            ->assertOk()
-            ->assertSee('href="http://localhost/pt-BR/writing"', false)
-            ->assertSee('hreflang="en"', false)
-            ->assertDontSee('rel="alternate" hreflang="pt-BR"', false)
-            ->assertDontSee('rel="alternate" hreflang="x-default"', false);
+    $this->get('/en/writing/english-only-review')
+        ->assertOk()
+        ->assertSee('href="http://localhost/pt-BR/writing"', false)
+        ->assertSee('hreflang="en"', false)
+        ->assertDontSee('rel="alternate" hreflang="pt-BR"', false)
+        ->assertDontSee('rel="alternate" hreflang="x-default"', false);
 
-        $this->get('/pt-BR/writing/english-only-review')->assertNotFound();
-    } finally {
-        if (is_file($path)) {
-            unlink($path);
-        }
-    }
+    $this->get('/pt-BR/writing/english-only-review')->assertNotFound();
+
 });
 
 it('generates localized SEO, alternate links, and global sitemap and robots endpoints', function () {
@@ -433,39 +432,18 @@ it('excludes articles with invalid front matter from listings and detail routes'
 
 it('strips raw HTML and unsafe links from published Markdown', function () {
     $slug = 'markdown-security-'.Str::uuid();
-    $path = resource_path("content/articles/en/{$slug}.md");
-    $content = <<<MARKDOWN
-    ---
-    slug: {$slug}
-    title: <script>alert(1)</script>
-    description: Test dangerous HTML and URL handling.
-    date: 2026-10-11
-    status: published
-    ---
+    $article = Article::query()->create(['slug' => $slug]);
+    $article->translations()->create(['locale' => 'en', 'title' => '<script>alert(1)</script>', 'description' => 'Test dangerous HTML and URL handling.', 'body_markdown' => "Safe article text.\n\n<img src=x onerror=alert(1)>\n\n[unsafe](javascript:alert(1))", 'seo_title' => 'Security test', 'seo_description' => 'Test dangerous HTML and URL handling.', 'published_on' => '2026-10-11', 'editorial_status' => 'published', 'published_at' => now()]);
 
-    Safe article text.
+    $this->get("/en/writing/{$slug}")
+        ->assertOk()
+        ->assertSee('Safe article text')
+        ->assertSee('&lt;script&gt;alert(1)&lt;/script&gt;', false)
+        ->assertDontSee('<script>', false)
+        ->assertDontSee('<img', false)
+        ->assertDontSee('onerror', false)
+        ->assertDontSee('href="javascript:', false);
 
-    <img src=x onerror=alert(1)>
-
-    [unsafe](javascript:alert(1))
-    MARKDOWN;
-
-    file_put_contents($path, $content);
-
-    try {
-        $this->get("/en/writing/{$slug}")
-            ->assertOk()
-            ->assertSee('Safe article text')
-            ->assertSee('&lt;script&gt;alert(1)&lt;/script&gt;', false)
-            ->assertDontSee('<script>', false)
-            ->assertDontSee('<img', false)
-            ->assertDontSee('onerror', false)
-            ->assertDontSee('href="javascript:', false);
-    } finally {
-        if (is_file($path)) {
-            unlink($path);
-        }
-    }
 });
 
 it('publishes canonical metadata and structured data', function () {

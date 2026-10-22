@@ -2,72 +2,55 @@
 
 namespace App\Support;
 
-use Illuminate\Support\Facades\File;
+use App\Models\Article;
 
 class LocalizedArticleRepository
 {
-    /** @return list<array{slug:string,title:string,description:string,date:string,status:string,body:string}> */
+    /** @return list<array<string, mixed>> */
     public function published(string $locale): array
     {
-        if (! app(SupportedLocales::class)->supports($locale)) {
-            return [];
-        }
+        abort_unless(app(SupportedLocales::class)->supports($locale), 404);
 
-        $directory = resource_path('content/articles/'.$locale);
-        if (! File::isDirectory($directory)) {
-            return [];
-        }
-
-        return collect(File::files($directory))
-            ->filter(fn ($file) => $file->getExtension() === 'md')
-            ->map(fn ($file) => $this->parse($file->getContents()))
-            ->filter(fn ($article) => $article !== null)
-            ->sortByDesc('date')->values()->all();
+        return Article::query()
+            ->with(['translations' => fn ($query) => $query->where('locale', $locale)->where('editorial_status', 'published')])
+            ->whereNull('archived_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (Article $article) => $this->toArray($article))
+            ->filter()->sortByDesc('date')->values()->all();
     }
 
-    /** @return array{slug:string,title:string,description:string,date:string,status:string,body:string}|null */
+    /** @return array<string, mixed>|null */
     public function find(string $locale, string $slug): ?array
     {
         if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug) !== 1) {
             return null;
         }
 
-        foreach ($this->published($locale) as $article) {
-            if ($article['slug'] === $slug) {
-                return $article;
-            }
-        }
-
-        return null;
+        return collect($this->published($locale))->firstWhere('slug', $slug);
     }
 
-    /** @return array{slug:string,title:string,description:string,date:string,status:string,body:string}|null */
-    private function parse(string $content): ?array
+    /** @return array<string, mixed>|null */
+    private function toArray(Article $article): ?array
     {
-        if (preg_match('/\A---\R(.*?)\R---\R(.*)\z/s', $content, $parts) !== 1) {
+        $translation = $article->translations->first();
+        if ($translation === null) {
             return null;
         }
 
-        $metadata = [];
-        foreach (preg_split('/\R/', $parts[1]) as $line) {
-            if (preg_match('/^(slug|title|description|date|status):\s*(.+)$/', $line, $match) === 1) {
-                $metadata[$match[1]] = trim($match[2], " \t\"'");
-            }
-        }
+        $publishedOn = $translation->getAttribute('published_on');
+        $date = $publishedOn instanceof \DateTimeInterface ? $publishedOn->format('Y-m-d') : '';
 
-        $date = $metadata['date'] ?? '';
-        $parsedDate = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
-        $validDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1
-            && $parsedDate instanceof \DateTimeImmutable
-            && $parsedDate->format('Y-m-d') === $date;
-
-        if (($metadata['status'] ?? '') !== 'published'
-            || preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $metadata['slug'] ?? '') !== 1
-            || ! $validDate
-            || ! isset($metadata['title'], $metadata['description'])) {
-            return null;
-        }
-
-        return [...$metadata, 'body' => trim($parts[2])];
+        return [
+            'slug' => $article->slug,
+            'title' => (string) $translation->getAttribute('title'),
+            'description' => (string) $translation->getAttribute('description'),
+            'date' => $date,
+            'status' => (string) $translation->getAttribute('editorial_status'),
+            'body' => (string) $translation->getAttribute('body_markdown'),
+            'seo_title' => (string) $translation->getAttribute('seo_title'),
+            'seo_description' => (string) $translation->getAttribute('seo_description'),
+            'cover_alt' => $translation->getAttribute('cover_alt'),
+        ];
     }
 }

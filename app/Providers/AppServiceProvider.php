@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Article;
 use App\Models\Project;
+use App\Policies\ArticlePolicy;
 use App\Policies\ProjectPolicy;
 use App\Support\LocalizedRoutes;
 use App\Support\PortfolioContact;
@@ -29,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Project::class, ProjectPolicy::class);
+        Gate::policy(Article::class, ArticlePolicy::class);
         RateLimiter::for('admin-login', fn ($request) => Limit::perMinute(5)->by(strtolower((string) $request->input('email')).'|'.$request->ip()));
         View::composer('layouts.app', function ($view): void {
             $locales = app(SupportedLocales::class);
