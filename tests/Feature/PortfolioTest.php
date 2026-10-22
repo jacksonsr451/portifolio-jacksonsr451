@@ -1,11 +1,15 @@
 <?php
 
 use App\Models\Article;
+use App\Models\User;
 use App\Support\LocalizedArticleRepository;
+use App\Support\SeoMetadata;
 use App\Support\SupportedLocales;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 it('renders the default-language homepage with professional positioning and selected projects', function () {
     $this->get('/pt-BR')->assertOk()->assertSee('Engenheiro de Backend')->assertSee('EventFlow')->assertSee('Jackson Severino da Rocha');
@@ -458,6 +462,76 @@ it('publishes canonical metadata and structured data', function () {
     preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $response->getContent(), $structuredData);
     expect(json_decode(trim($structuredData[1] ?? ''), true))
         ->toMatchArray(['@context' => 'https://schema.org', '@type' => 'Person', 'inLanguage' => 'en']);
+});
+
+it('renders one valid escaped JSON-LD document per localized public page', function (string $locale) {
+    $response = $this->get("/{$locale}")->assertOk();
+    preg_match_all('/<script type="application\/ld\+json">(.*?)<\/script>/s', $response->getContent(), $matches);
+
+    expect($matches[1])->toHaveCount(1);
+    $jsonLd = json_decode(trim($matches[1][0]), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($jsonLd)
+        ->toHaveKey('@context', 'https://schema.org')
+        ->toHaveKey('@type', 'Person')
+        ->not->toHaveKey('@@context')
+        ->not->toHaveKey('@@type')
+        ->toHaveKey('url', route('localized.home', ['locale' => $locale]));
+})->with(['pt-BR', 'en']);
+
+it('uses localized page metadata and Article JSON-LD for Writing details', function () {
+    $response = $this->get('/pt-BR/writing/api-error-contracts')->assertOk()
+        ->assertSee('property="og:type" content="article"', false)
+        ->assertSee('property="og:title" content="Erros de API fazem parte da interface — Artigo técnico"', false)
+        ->assertSee('name="twitter:description"', false);
+
+    preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $response->getContent(), $match);
+    $jsonLd = json_decode(trim($match[1] ?? ''), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($jsonLd)->toMatchArray(['@context' => 'https://schema.org', '@type' => 'Article', 'inLanguage' => 'pt-BR']);
+});
+
+it('escapes special characters in Article JSON-LD without changing decoded values', function () {
+    $slug = 'seo-special-'.Str::uuid();
+    $title = 'Café "contratos" <seguro> & APIs';
+    $article = Article::query()->create(['slug' => $slug]);
+    $article->translations()->create(['locale' => 'en', 'title' => $title, 'description' => 'Description with <unsafe> markup.', 'body_markdown' => 'Safe body.', 'seo_title' => $title, 'seo_description' => 'Description with <unsafe> markup.', 'published_on' => '2026-10-11', 'editorial_status' => 'published', 'published_at' => now()]);
+
+    $response = $this->get("/en/writing/{$slug}")->assertOk()->assertDontSee('<seguro>', false);
+    preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $response->getContent(), $match);
+    $jsonLd = json_decode(trim($match[1] ?? ''), true, 512, JSON_THROW_ON_ERROR);
+
+    expect($jsonLd['headline'])->toBe($title);
+    expect($response->getContent())->not->toContain('"headline":"'.$title.'"');
+});
+
+it('does not index staging or expose preview SEO URLs', function () {
+    config(['app.env' => 'staging']);
+    $this->get('/en')->assertOk()->assertSee('name="robots" content="noindex, nofollow"', false)->assertDontSee('rel="canonical"', false)->assertDontSee('application/ld+json', false);
+    $this->get('/robots.txt')->assertOk()->assertSee('Disallow: /')->assertDontSee('Sitemap:');
+
+    config(['app.env' => 'testing']);
+    config(['portfolio.admin_emails' => ['owner@example.test']]);
+    $article = Article::query()->where('slug', 'idempotent-apis')->firstOrFail();
+    $this->actingAs(User::factory()->create(['email' => 'owner@example.test']))
+        ->get("/admin/articles/{$article->id}/preview/en")
+        ->assertOk()->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
+        ->assertDontSee('rel="canonical"', false)
+        ->assertDontSee('application/ld+json', false);
+});
+
+it('requires an HTTPS non-local production origin for canonical metadata', function () {
+    try {
+        config(['app.env' => 'production', 'app.url' => 'https://portfolio.example']);
+        URL::forceRootUrl('https://portfolio.example');
+        $this->get('/en')->assertOk()->assertSee('rel="canonical" href="https://portfolio.example/en"', false);
+
+        config(['app.url' => 'http://temporary.example']);
+        URL::forceRootUrl('http://temporary.example');
+        expect(fn () => app(SeoMetadata::class)->canonicalUrl())->toThrow(HttpException::class);
+    } finally {
+        URL::forceRootUrl(null);
+    }
 });
 
 it('serves a sitemap containing public routes and content', function () {

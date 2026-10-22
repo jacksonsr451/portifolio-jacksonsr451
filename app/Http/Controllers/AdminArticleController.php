@@ -92,7 +92,7 @@ class AdminArticleController extends Controller
         app()->setLocale($locale);
         $data = ['slug' => $article->slug, 'title' => $translation->title, 'description' => $translation->description, 'date' => optional($translation->published_on)->format('Y-m-d') ?? now()->format('Y-m-d'), 'body' => $translation->body_markdown, 'html' => $markdown->render($translation->body_markdown)];
 
-        return response()->view('pages.article', ['article' => $data, 'title' => $translation->seo_title, 'description' => $translation->seo_description])->header('X-Robots-Tag', 'noindex, nofollow, noarchive')->header('Cache-Control', 'private, no-store');
+        return response()->view('pages.article', ['article' => $data, 'title' => $translation->seo_title, 'description' => $translation->seo_description, 'indexable' => false])->header('X-Robots-Tag', 'noindex, nofollow, noarchive')->header('Cache-Control', 'private, no-store');
     }
 
     private function save(Article $article, Request $request): Article

@@ -101,7 +101,7 @@ Pull requests and pushes to `main` run Composer install, Pint, Larastan, Pest wi
 
 ## Deployment
 
-Select a hosting target, provision PHP 8.4+ or run the provided container, configure HTTPS, `APP_KEY`, `APP_URL`, persistence, backups, and protected GitHub environment settings. Follow `docs/deployment/production.md`; deployment is not active until a reviewed target adapter is added.
+Select a hosting target, provision PHP 8.4+ or run the provided container, configure HTTPS, `APP_KEY`, `APP_URL`, persistence, backups, and protected GitHub environment settings. `APP_URL` must be the canonical HTTPS production origin; the application rejects localhost or HTTP canonical metadata in production. Local and staging environments emit `noindex, nofollow` metadata and staging `robots.txt` disallows crawling. Follow `docs/deployment/production.md`; deployment is not active until a reviewed target adapter is added.
 
 ## Security
 
