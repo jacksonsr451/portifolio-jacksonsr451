@@ -29,7 +29,7 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script type="application/ld+json">
-        <?php echo app(\App\Support\PortfolioContact::class)->personStructuredData(); ?>
+        @if(isset($structuredData))<?php echo json_encode($structuredData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>@else<?php echo app(\App\Support\PortfolioContact::class)->personStructuredData(); ?>@endif
     </script>
 </head>
 

@@ -34,18 +34,37 @@ Back up the database and `storage/app/private` before releases. To roll back, ve
 the backup and run `php artisan migrate:rollback --step=1`; this removes the project
 tables and is intentionally destructive.
 
+### Writing articles
+
+Writing articles are stored in `articles` and `article_translations`; the database is
+the only public source after import. The importer preserves the original Markdown and
+does not overwrite translations created or edited in the panel:
+
+```sh
+php artisan portfolio:import-articles --dry-run
+php artisan portfolio:import-articles
+```
+
+Each locale has its own editorial state. Public Writing routes require a published
+translation in the requested locale, while administrative previews use `noindex` and
+`Cache-Control: no-store, private`. Markdown is rendered with HTML stripping and
+unsafe-link rejection. There is no scheduler or application cache for Writing yet;
+manual publication is the operational workflow and changes are immediately visible.
+Article rollback follows the same database backup and migration rollback procedure.
+
 > **Screenshot pending:** add an approved screenshot after visual review at common mobile and desktop widths.
 
 ## Architecture
 
-Laravel 13 serves Blade views from named routes. Dynamic projects use Eloquent; technical articles remain Markdown files with validated front matter in `resources/content/articles/`. The sitemap, robots rules, and Laravel `/up` health endpoint are served by the application.
+Laravel 13 serves Blade views from named routes. Dynamic projects and Writing articles
+use Eloquent; the versioned Markdown files are migration input/backup, not a runtime
+source. The sitemap, robots rules, and Laravel `/up` health endpoint are served by the application.
 
 ```mermaid
 flowchart LR
   Browser --> Laravel[Laravel routes and controller]
   Laravel --> Blade[Blade pages]
-  Laravel --> Database[(SQLite/PostgreSQL projects)]
-  Laravel --> Markdown[resources/content/articles]
+  Laravel --> Database[(SQLite/PostgreSQL projects and articles)]
   Blade --> Vite[Vite-built CSS and JavaScript]
 ```
 
@@ -90,7 +109,7 @@ No contact form or user-submitted content is enabled. Keep dependencies updated,
 
 ## Repository map
 
-`app/Http/Controllers` public page controller · `config/portfolio.php` curated catalog · `resources/views` Blade · `resources/content/articles` Markdown · `tests` Pest · `docs` engineering and operating guidance · `.github/workflows` automation.
+`app/Http/Controllers` page and admin controllers · `app/Models` persisted portfolio entities · `config/portfolio.php` curated catalog · `resources/views` Blade · `resources/content/articles` versioned article import source · `tests` Pest · `docs` engineering and operating guidance · `.github/workflows` automation.
 
 The public site is available in Portuguese (Brazil) and English. See the [internationalization guide](docs/development/internationalization.md) for route, content, translation, and SEO conventions; all future user-facing changes must support and test both locales.
 

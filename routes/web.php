@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminArticleController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminProjectController;
 use App\Http\Controllers\LegacyRedirectController;
@@ -36,6 +37,14 @@ Route::prefix('admin')->middleware(['auth', 'can:viewAny,'.Project::class])->nam
     Route::put('/projects/{project}', [AdminProjectController::class, 'update'])->name('projects.update');
     Route::post('/projects/{project}/archive', [AdminProjectController::class, 'archive'])->name('projects.archive');
     Route::get('/projects/{project}/preview/{locale}', [AdminProjectController::class, 'preview'])->name('projects.preview');
+    Route::get('/articles', [AdminArticleController::class, 'index'])->name('articles.index');
+    Route::get('/articles/create', [AdminArticleController::class, 'create'])->name('articles.create');
+    Route::post('/articles', [AdminArticleController::class, 'store'])->name('articles.store');
+    Route::get('/articles/{article}/edit', [AdminArticleController::class, 'edit'])->name('articles.edit');
+    Route::put('/articles/{article}', [AdminArticleController::class, 'update'])->name('articles.update');
+    Route::post('/articles/{article}/archive', [AdminArticleController::class, 'archive'])->name('articles.archive');
+    Route::delete('/articles/{article}', [AdminArticleController::class, 'destroy'])->name('articles.destroy');
+    Route::get('/articles/{article}/preview/{locale}', [AdminArticleController::class, 'preview'])->name('articles.preview');
 });
 
 Route::prefix('{locale}')

@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Support\LocalizedArticleRepository;
 use App\Support\LocalizedPortfolio;
+use App\Support\MarkdownRenderer;
 use App\Support\PortfolioContact;
 use App\Support\SupportedLocales;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PortfolioController extends Controller
@@ -75,19 +75,17 @@ class PortfolioController extends Controller
         ]);
     }
 
-    public function article(string $locale, string $slug): View
+    public function article(string $locale, string $slug, MarkdownRenderer $markdown): View
     {
         $article = app(LocalizedArticleRepository::class)->find($locale, $slug);
         abort_if($article === null, 404);
-        $article['html'] = Str::markdown($article['body'], [
-            'html_input' => 'strip',
-            'allow_unsafe_links' => false,
-        ]);
+        $article['html'] = $markdown->render($article['body']);
 
         return view('pages.article', [
             'article' => $article,
             'title' => $article['title'].__('ui.article.title_suffix'),
-            'description' => $article['description'],
+            'description' => $article['seo_description'] ?: $article['description'],
+            'structuredData' => ['@context' => 'https://schema.org', '@type' => 'Article', 'headline' => $article['title'], 'description' => $article['description'], 'datePublished' => $article['date'], 'inLanguage' => $locale, 'mainEntityOfPage' => url()->current()],
         ]);
     }
 
