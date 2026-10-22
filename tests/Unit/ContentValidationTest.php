@@ -138,7 +138,7 @@ it('omits portfolio items when their locale-specific editorial translation is mi
 
     $localized = app(LocalizedPortfolio::class)->projects('pt-BR');
 
-    expect(array_column($localized, 'slug'))->not->toContain('eventflow')
+    expect(array_column($localized, 'slug'))->toContain('eventflow')
         ->not->toContain('untranslated-test-record');
 
     $items = config('portfolio.open_source');

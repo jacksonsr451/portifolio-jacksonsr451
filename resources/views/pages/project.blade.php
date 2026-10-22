@@ -1,4 +1,9 @@
 @extends('layouts.app')
+@section('robots')
+@if(request()->routeIs('admin.projects.preview'))
+noindex, nofollow, noarchive
+@endif
+@endsection
 @section('content')
 <article class="section-wrap case-study">
     <a class="text-link back-link" href="{{ route('localized.projects.index', ['locale' => app()->getLocale()]) }}">{{ __('ui.actions.back_projects') }}</a>
