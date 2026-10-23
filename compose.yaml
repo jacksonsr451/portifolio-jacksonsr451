@@ -3,6 +3,7 @@ services:
     build:
       context: .
       target: runtime
+    image: ${PORTFOLIO_APP_IMAGE:-portfolio-app:local}
     environment:
       APP_NAME: "Jackson Severino da Rocha — Backend Engineer"
       APP_ENV: production
@@ -16,6 +17,7 @@ services:
       LOG_CHANNEL: stderr
     volumes:
       - app-storage:/var/www/html/storage
+      - app-database:/var/www/html/database
     expose:
       - "9000"
     healthcheck:
@@ -38,6 +40,7 @@ services:
     build:
       context: .
       target: web
+    image: ${PORTFOLIO_WEB_IMAGE:-portfolio-web:local}
     depends_on:
       app:
         condition: service_healthy
@@ -60,3 +63,4 @@ services:
 
 volumes:
   app-storage:
+  app-database:
